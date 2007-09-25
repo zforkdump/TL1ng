@@ -1,0 +1,14 @@
+--- #YAML:1.0
+name:                TL1ng
+version:             0.01
+abstract:            A simple, flexible, OO way to work with TL1.
+license:             ~
+generated_by:        ExtUtils::MakeMaker version 6.36
+distribution_type:   module
+requires:     
+    Net::Telnet:                   Time::Local
+meta-spec:
+    url:     http://module-build.sourceforge.net/META-spec-v1.2.html
+    version: 1.2
+author:
+    - Steve Scaffidi <sscaffidi@cpan.net>
