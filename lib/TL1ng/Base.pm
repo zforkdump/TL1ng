@@ -18,6 +18,8 @@ package TL1ng::Base;
 use strict;
 use warnings;
 
+use Carp;
+
 our $VERSION = '0.01';
 
 use TL1ng::Parser;
@@ -30,33 +32,39 @@ our $DEBUG = 2;
 
 Create a new TL1 object representing the connection to the TL1 NE/GNE.<BR>
 <BR>
-Right now I've only written a subclass to support working over a Telnet 
+Right now I've only written a TL1ng::Source subclass to support working over a Telnet 
 connection but in the future I may add the ability to use a serial port or 
 named pipe or something...
 
 =cut
 
 sub new {
-    my $class = shift;
+    my ($class, $params) = @_;
 
-	# Determine the class of the 'source' object at run-time.
-	my %params = @_;
-	my $type = "TL1ng::Source::";
-	$type .= $params{Type} || 'Telnet';
+	croak "Parameter list must be an anonymous hash!\n" if $params && ref $params ne "HASH";
+	$params = {} if ! $params;
+	
+	# Determine the class of the 'source' object... Telnet is the default.
+	my $source_class = defined $params->{source} 
+		? "TL1ng::Source::" . $params->{source} : "TL1ng::Source::Telnet";
 	
 	# Clean up parameters we've used here - anything left over would 
 	# go to the TL1ng::Source class
-	$params{Type} and delete $params{Type};
+	$params->{source} and delete $params->{source};
 	
-	# Keep whatever's left 
-	my $self = bless( {@_}, $class );
+	# Unpacking the params hashref into an anonymous hashref so it 
+	# doesn't get blessed and confuse the Source object's constructor.
+	my $self = bless( { %$params }, $class );
 	
-	eval "use $type;"; ### I have no clue if this is bad style or not.
-	$self->{source} = eval "new $type (%params);"; ### nor this...
-    die "Couldn't initialize the $type module!" unless $self->{source};
+	# Instantiate the Source object
+	### I have no clue if this is a good way to do this or not.
+	eval "use $source_class;";
+	$self->{source} = $source_class->new( {%$params} )
+    	|| croak "Couldn't initialize the $source_class module!";
+
 	
     # Set up a parser:
-    $self->{parser} = new TL1ng::Parser();
+    $self->{parser} = TL1ng::Parser->new();
 
     # Set up a queue for response messages that get read in, but haven't
     # been retrieved by the calling app. These can be any type of TL1 message.

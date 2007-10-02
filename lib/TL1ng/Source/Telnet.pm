@@ -21,9 +21,13 @@ our @ISA = qw(TL1ng::Source);
 our $DEBUG = 0; # Debugging level... someday I'll figger out AOP with Perl...
 
 use Net::Telnet;
+use Carp;
+
 
 sub new {
-    my $class = shift;
+    my ($class, $params) = @_;
+	croak "Parameter list must be an anonymous hash!\n" if $params && ref $params ne "HASH";
+	$params = {} if ! $params;
 
     # Defaults for this sub-class.
     my %default_params = (
@@ -31,7 +35,7 @@ sub new {
 		timeout  => 60,           # Timeout for connection and other operations
         hostname => '',           # Hostname or IP address of the NE/GNE
         port     => '',           # TCP port to connect to on the NE/GNE
-        @_,                       # Merge additional params into this hash.
+        %$params,               # Merge additional params into this hash.
         prompt   => '/[;><]/',    # Chars that match the end of a TL1 message...
 		                          #  Overriding this could be bad.
     );
@@ -53,10 +57,10 @@ sub _init_telnet {
 
     # 0 is a better default than auto for this 'cause it's more predictable.
     my $cmd_remove_mode =
-      defined $self->{Cmd_remove_mode} ? $self->{Cmd_remove_mode} : 0;
+      defined $self->{cmd_remove_mode} ? $self->{cmd_remove_mode} : 0;
 
     # Changed default from 0 to 1 for the Lucent nodes.
-    my $telnetmode = defined $self->{Telnetmode} ? $self->{Telnetmode} : 1;
+    my $telnetmode = defined $self->{telnetmode} ? $self->{telnetmode} : 1;
 
     my $timeout = defined $self->{timeout} ? $self->{timeout} : 15;
 
@@ -66,7 +70,7 @@ sub _init_telnet {
         Telnetmode      => $telnetmode,
         Cmd_remove_mode => $cmd_remove_mode,
         Prompt          => $self->{prompt},
-    ) || die "Couldn't set up telnet connection!";
+    ) || croak "Couldn't set up telnet connection!";
 	
 	return 1;
 }
@@ -98,17 +102,17 @@ sub _read_msg {
     if ( $self->{telnet}->timed_out() ) {
 
         # Timeout isn't inherently fatal.
-        warn "Timed Out! (error not fatal)" if $DEBUG > 2;
+        carp "Timed Out! (error not fatal)" if $DEBUG > 2;
     }
     elsif ( $self->{telnet}->eof() ) {
-        warn "EOF detected. Connection failed?\n\t"
+        carp "EOF detected. Connection failed?\n\t"
           . $self->{telnet}->errmsg('');
         $self->disconnect();
     }
     elsif ( $self->{telnet}->errmsg() ) {
 
         # Some other unknown type of error?
-        warn "\t" . $self->{telnet}->errmsg('');
+        carp "\t" . $self->{telnet}->errmsg('');
         $self->disconnect();
     }
 
@@ -145,7 +149,7 @@ sub connect {
     $self->{telnet}->open(
         Host => $self->{hostname},
         Port => $self->{port},
-    ) || die "Couldn't connect to " . "$self->{hostname}:$self->{port}\n";
+    ) || return;  # || die "Couldn't connect to " . "$self->{hostname}:$self->{port}\n";
 
     $self->{connected} = 1;
     print "Connected to $self->{hostname}:$self->{port}\n" if $DEBUG > 1;

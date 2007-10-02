@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                TL1ng
-version:             0.01
+version:             0.03
 abstract:            A simple, flexible, OO way to work with TL1.
 license:             ~
 generated_by:        ExtUtils::MakeMaker version 6.36
