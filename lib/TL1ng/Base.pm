@@ -40,17 +40,18 @@ named pipe or something...
 
 sub new {
     my ($class, $params) = @_;
+    $class = ref($class) || $class;
 
 	croak "Parameter list must be an anonymous hash!\n" if $params && ref $params ne "HASH";
 	$params = {} if ! $params;
 	
 	# Determine the class of the 'source' object... Telnet is the default.
-	my $source_class = defined $params->{source} 
-		? "TL1ng::Source::" . $params->{source} : "TL1ng::Source::Telnet";
+	my $source_class = defined $params->{Source} 
+		? "TL1ng::Source::" . $params->{Source} : "TL1ng::Source::Telnet";
 	
 	# Clean up parameters we've used here - anything left over would 
 	# go to the TL1ng::Source class
-	$params->{source} and delete $params->{source};
+	$params->{Source} and delete $params->{Source};
 	
 	# Unpacking the params hashref into an anonymous hashref so it 
 	# doesn't get blessed and confuse the Source object's constructor.
@@ -59,7 +60,7 @@ sub new {
 	# Instantiate the Source object
 	### I have no clue if this is a good way to do this or not.
 	eval "use $source_class;";
-	$self->{source} = $source_class->new( {%$params} )
+	$self->{source} = $source_class->new( $params )
     	|| croak "Couldn't initialize the $source_class module!";
 
 	
@@ -153,21 +154,29 @@ sub get_resp {
 
     my $timeout = shift;
     $timeout = $self->{source}->timeout() unless defined $timeout;
-    my $start = time;
-
-    # Search the response queue
+    
+    # Search the response queue for command responses that match.
+    # but make sure it's a command response, and not just an ack.
     my $queue = $self->{response_queue};
     for ( my $x = 0 ; $x < @$queue ; $x++ ) {
-        if ( exists $queue->[$x]{CTAG} and $queue->[$x]{CTAG} == $CTAG ) {
+        if ( 
+                 exists $queue->[$x]{CTAG} 
+             and $queue->[$x]{CTAG} eq "$CTAG"
+             and exists $queue->[$x]{type}
+             and $queue->[$x]{type} eq 'CMD'
+            ) 
+        {
             return splice @$queue, $x, 1;
         }
     }
 
     # If that didn't work attempt to retrieve messages until the
     # timeout is exceeded.
+    my $start = time;
     while ( time < $start + $timeout ) {
         if ( my $msg = $self->{parser}->parse_string( $self->{source}->_read_msg() ) ) {
-            return $msg if exists $msg->{CTAG} and $msg->{CTAG} == $CTAG;
+            return $msg if exists $msg->{CTAG} and $msg->{CTAG} eq "$CTAG" 
+                       and exists $msg->{type} and $msg->{type} eq 'CMD';
             push @$queue, $msg if $msg;
         }
     }
@@ -201,7 +210,10 @@ chain it with another method, like this...
 
 sub send_cmd {
     my $self = shift;
-    $self->{source}->_send_cmd(shift) and return $self;
+    my $cmd = shift;
+    $self->{last_ctag} = (split ':|;', $cmd)[3]; # Parse out the CTAG and remember it.
+    $self->{source}->_send_cmd($cmd) 
+        and return $self;
     return;
 }
 
@@ -218,5 +230,11 @@ Returns a reference to the module that provides access to the TL1 NE.
 =cut
 
 sub source { shift->{source} }
+
+# Generates a random valid CTAG.
+sub rand_ctag { int(rand() * 1000) }
+
+
+sub last_ctag { shift->{last_ctag} || '' }
 
 1;

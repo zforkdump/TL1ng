@@ -3,7 +3,7 @@ package TL1ng::Parser;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.04';
 
 use Time::Local;
 
@@ -324,7 +324,7 @@ sub _parse_msg_data {
 Parse the payload data lines into 'fields' delimited by : and 'sections' 
 delimited by , and save the results in an array of arrays in $msg->{payload}
 
-The AoA structure reflects:
+The AoAoA structure reflects:
  $payload[]  = @lines
  $lines[]    = @sections
  $sections[] = @fields
@@ -496,7 +496,9 @@ sub _datetime2utcunix {
     my $date      = shift;
     my $time      = shift;
     my @timestuff = reverse( split( '-', $date ), split( ':', $time ) );
-    s/^0+// for @timestuff;    # Strip leading 0s
+    s/^0+(.)/$1/ for @timestuff;  # Strip leading 0s, but be sure to leave at 
+                                  # least one digit. (assuming it's a digit)
+    $timestuff[4]--; # The Month element should be from 0 to 11.
     return timelocal(@timestuff) unless shift;
     return timegm(@timestuff);
 }

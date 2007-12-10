@@ -29,25 +29,41 @@ sub new {
 	croak "Parameter list must be an anonymous hash!\n" if $params && ref $params ne "HASH";
 	$params = {} if ! $params;
 
+    # Connect = Establish the Telnet connection now, instead 
+    # of waiting for the user to call the connect method.
+    my $connect_now = defined $params->{Connect} ? $params->{Connect} : 0;
+    delete $params->{Connect} if defined $params->{Connect};
+    
+    # Default timeout is 60 seconds
+    my $timeout = defined $params->{Timeout} ? $params->{Timeout} : 60;
+    delete $params->{Timeout} if defined $params->{Timeout};
+    
+    # Default hostname is blank.
+    my $hostname = defined $params->{Host} ? $params->{Host} : '';
+    delete $params->{Host} if defined $params->{Host};
+    
+    # Default port is blank.
+    my $port = defined $params->{Port} ? $params->{Port} : '';
+    delete $params->{Port} if defined $params->{Port};
+    
     # Defaults for this sub-class.
-    my %default_params = (
-        connect  => 0,            # True = Establish the Telnet connection now.
-		timeout  => 60,           # Timeout for connection and other operations
-        hostname => '',           # Hostname or IP address of the NE/GNE
-        port     => '',           # TCP port to connect to on the NE/GNE
+    my %self_params = (
+		timeout  => $timeout,   # Timeout for connection and other operations
+        hostname => $hostname,  # Hostname or IP address of the NE/GNE telnet interface
+        port     => $port,      # TCP port to connect to on the NE/GNE
         %$params,               # Merge additional params into this hash.
-        prompt   => '/[;><]/',    # Chars that match the end of a TL1 message...
-		                          #  Overriding this could be bad.
+        prompt   => '/[;><]/',  # Chars that match the end of a TL1 message...
+		                        # Overriding the prompt could be bad.
     );
 
-    my $self = bless( {%default_params}, $class );
+    my $self = bless( {%self_params}, $class );
 
     $self->_init_telnet();
 
 	
     # Set up $self->{socket} with a Net::Telnet connection
     # App will die if connection fails.
-    $self->connect() if $self->{connect};
+    $self->connect() if $connect_now;
 
     return $self;
 }
@@ -57,15 +73,13 @@ sub _init_telnet {
 
     # 0 is a better default than auto for this 'cause it's more predictable.
     my $cmd_remove_mode =
-      defined $self->{cmd_remove_mode} ? $self->{cmd_remove_mode} : 0;
+      defined $self->{Cmd_remove_mode} ? $self->{Cmd_remove_mode} : 0;
 
     # Changed default from 0 to 1 for the Lucent nodes.
-    my $telnetmode = defined $self->{telnetmode} ? $self->{telnetmode} : 1;
-
-    my $timeout = defined $self->{timeout} ? $self->{timeout} : 15;
+    my $telnetmode = defined $self->{Telnetmode} ? $self->{Telnetmode} : 1;
 
     $self->{telnet} = new Net::Telnet(
-        Timeout         => $timeout,
+        Timeout         => $self->{timeout},
         Errmode         => 'return',
         Telnetmode      => $telnetmode,
         Cmd_remove_mode => $cmd_remove_mode,
@@ -126,7 +140,11 @@ sub _read_msg {
 }
 
 sub _send_cmd {
-    shift->{telnet}->print(shift);
+    my $self = shift;
+    my $cmd = shift;
+    croak "Cannot send command. You are not connected to a telnet server."
+        unless $self->connected();
+    return $self->{telnet}->print($cmd);
 }
 
 =pod
@@ -142,6 +160,7 @@ I may change this method drastically in the future.
 
 sub connect {
     my $self = shift;
+    my $params = shift || {};
 
     $self->{telnet}->dump_log('telnet_dump.log')   if $DEBUG > 3;
     $self->{telnet}->input_log('telnet_input.log') if $DEBUG > 3;
@@ -149,6 +168,7 @@ sub connect {
     $self->{telnet}->open(
         Host => $self->{hostname},
         Port => $self->{port},
+        %$params,
     ) || return;  # || die "Couldn't connect to " . "$self->{hostname}:$self->{port}\n";
 
     $self->{connected} = 1;

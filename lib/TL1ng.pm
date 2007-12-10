@@ -4,10 +4,12 @@ use 5.008000;
 
 use strict;
 use warnings;
+use diagnostics;
 
 use Carp;
 
-our $VERSION = '0.03';
+
+our $VERSION = '0.05';
 
 
 sub new {
@@ -19,20 +21,19 @@ sub new {
 	
 	# Since this class is just a factory, determine the conrete TL1ng class to 
 	# instantiate... Use TL1ng::Base as a default is none is provided.
-	my $inst_class = defined $params->{type} 
-		? "${class}::" . $params->{type} : "${class}::Base";
+	my $inst_class = defined $params->{Type} 
+		? "${class}::" . $params->{Type} : "${class}::Base";
 	
 	
 	# Clean up parameters we've used here - anything left over will 
 	# be passed to the object we're instantiating.
-	$params->{type} and delete $params->{type};
+	$params->{Type} and delete $params->{Type};
 	
 	
 	# Instantiate the apropriate TL1 object
-	eval "use $inst_class;";
+	eval "require $inst_class" || die "Couldn't load $inst_class!";
 	my $tl1_obj = $inst_class->new($params)
 		|| croak "Couldn't instantiate $inst_class!\n";
-
 
     return $tl1_obj;
 }
