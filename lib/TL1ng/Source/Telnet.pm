@@ -1,5 +1,8 @@
 package TL1ng::Source::Telnet;
 
+use strict;
+use warnings;
+
 =pod
 
 This package implements the sending and collection of TL1 messages to and from 
@@ -16,13 +19,21 @@ should always check the isa() and/or the can() of $tll->source() before-hand.
 
 our $VERSION = '0.01';
 
-our @ISA = qw(TL1ng::Source);
+#our @ISA = qw(TL1ng::Source);
+use base qw(TL1ng::Source);
 
 our $DEBUG = 0; # Debugging level... someday I'll figger out AOP with Perl...
 
 use Net::Telnet;
 use Carp;
 
+=head2 new
+
+Initalizes the object used to manage the telnet connection to a TL1 NE/GNE.
+
+TODO: Add info on the valid parameters.
+
+=cut
 
 sub new {
     my ($class, $params) = @_;
@@ -132,7 +143,7 @@ sub _read_msg {
 
     # if this message's terminator isn't on a line by itself,
     # this may be an echoed command... try getting the next message.
-    elsif ( $msg !~ /^[;><]/m ) {
+    elsif ( $msg !~ /^[;><]/xm ) {
         $msg = $self->_read_msg( ++$recurse ) unless $recurse;
     }
 
@@ -187,7 +198,7 @@ Use this to determine if the module is still connected to the TL1 data source.
 
 =cut
 
-sub connected { shift->{connected} }
+sub connected { return shift->{connected} }
 
 =pod
 
@@ -230,7 +241,7 @@ sub timeout {
     # Net::Telnet's timeout can be set to some funky values, so the if
     # clause is kinda necessary. 0 is valid, undef is valid, negative numbers
     # are not valid. See the module's docs for an explanation.
-    if ( ! defined $timeout or $timeout >= 0 ) {
+    if ( ! defined $timeout || $timeout >= 0 ) {
 		$self->{telnet}->timeout($timeout); 
 		return $self;
 	}
@@ -248,7 +259,7 @@ happening by calling disconnect().
 
 =cut
 
-sub DESTROY { shift->disconnect() }
+sub DESTROY { return shift->disconnect() }
 
 =pod
 
@@ -258,10 +269,10 @@ Sets or gets the hostname or IP address to connect to with Net::Telnet.
 
 =cut
 
-sub hostname {	
-	my $self = shift;
-	$self->{hostname} = shift if @_;
-	return $self;
+sub hostname {
+    my $self = shift;
+    $self->{hostname} = shift if @_;
+    return $self;
 }
 
 

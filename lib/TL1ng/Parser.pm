@@ -430,7 +430,7 @@ sub _parse_msg_header {
 
 =pod
 
-=head _match_msg_type
+=head2 _match_msg_type
 
 Parse an array of lines composing a TL1 message to determine the type.
 Return values can be one of:

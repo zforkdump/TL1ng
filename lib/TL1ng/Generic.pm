@@ -89,3 +89,39 @@ sub logout {
 }
 
 1;
+
+__END__
+
+=head1 NAME 
+
+TL1ng::Generic - Provides generic TL1 commands and functionality
+
+=head1 METHODS
+
+This class extends L<TL1ng::Base> to provide basic TL1 session management
+capabilities like login and logout of nodes available via the connected
+NE/GNE's TL1 agent.
+
+Since this class inherits from L<TL1ng::Base>, look there for the rest of the
+methods this module supports.
+
+=head2 new
+
+Provides nothing over and above the constructor for L<TL1ng::Base>, except
+for the initalization of some extra internal data this class needs.
+
+=head2 login
+
+Given a TID/SID, a username, and a password, this method attempts to establish 
+a login session with an NE available through the currently connected NE/GNE.
+
+=head2 logout
+
+Given the name of an NE (it's TID or SID) it terminates the current login
+session.
+
+=head2 sessions
+
+Returns a hashref with information on all currently logged-in sessions.
+
+=cut

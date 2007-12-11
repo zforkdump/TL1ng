@@ -229,12 +229,23 @@ Returns a reference to the module that provides access to the TL1 NE.
 
 =cut
 
-sub source { shift->{source} }
+sub source { return shift->{source} }
 
-# Generates a random valid CTAG.
-sub rand_ctag { int(rand() * 1000) }
+=head2 rand_ctag
 
+Generates a random valid CTAG.
 
-sub last_ctag { shift->{last_ctag} || '' }
+=cut
+
+sub rand_ctag { return int(rand() * 1000) }
+
+=head2 last_ctag
+
+Returns the last CTAG used with send_cmd() 
+(which parses out the CTAG and remembers it.)
+
+=cut
+
+sub last_ctag { return shift->{last_ctag} || '' }
 
 1;
