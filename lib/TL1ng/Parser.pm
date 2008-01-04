@@ -3,7 +3,7 @@ package TL1ng::Parser;
 use strict;
 use warnings;
 
-our $VERSION = '0.04';
+our $VERSION = '0.07';
 
 use Time::Local;
 
@@ -378,22 +378,29 @@ sub _split_quoted {
     my $self   = shift;
     my $d      = shift;    # Delimiter
     my $string = shift;
-
+    
+    my $regex  = qr{
+          # Capture text in quoted fields,
+          # ignoring escaped quotes and embedded newlines
+            (?:  ((?: (?: "(?: [^"] | (?<!\\)" )*")+[^$d]*)+)(?:$d|$) )
+          # OR Capture text in un-quoted fields.
+              | (?: ([^$d]+)(?:$d|$) )
+          # OR Capture empty, zero-width fields
+          # (Returns '')
+              | (?: ()(?:$d) )
+        }msx;
+        
     my @fields = ();
-    push( @fields, $+ ) while $string =~ m/
-      # Capture text in quoted fields,
-      # ignoring escaped quotes and embedded newlines
-          "((?s)(.*)|(?<!\\)")"(?:$d|$)
-      # OR Capture text in un-quoted fields.
-          | ([^$d]+)(?:$d|$)
-      # OR Capture empty, zero-width fields
-      # (Returns '')
-          | ()(?:$d)
-    /gx;
+    while ( $string =~ m/$regex/g ) {
+        push( @fields, $+ ); # I don't know why this doesn't work with $1 :-(
+    }
 
     # If the string ends with the delimiter,
     # we want to capture that as well.
-    push( @fields, '' ) if substr( $string, -1, 1 ) eq $d;
+    (my $d_clean = $d) =~ s/\\(.)/$1/g; # Collapse escaped chars first.
+    my $d_len = length $d_clean;
+    push( @fields, '' )
+        if substr( $string, -$d_len, $d_len ) eq $d_clean;
 
     return @fields;
 }

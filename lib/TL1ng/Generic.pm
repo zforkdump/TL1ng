@@ -3,7 +3,7 @@ package TL1ng::Generic;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.07';
 
 #our @ISA = qw(TL1ng::Base);
 use base 'TL1ng::Base';
@@ -11,7 +11,7 @@ use base 'TL1ng::Base';
 # Example of a derived class.
 sub new {
     my $class = shift;
-    my $self = $class->SUPER::new(@_); # Get the setup from the base-class.
+    my $self = $class->SUPER::new(@_) or return; # Get the setup from the base-class.
     bless $self, $class;
     $self->{sessions} = [] unless $self->{sessions};
     #use Data::Dumper; print Dumper $self; exit;

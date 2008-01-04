@@ -20,7 +20,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '0.01';
+our $VERSION = '0.07';
 
 use TL1ng::Parser;
 
@@ -61,7 +61,7 @@ sub new {
 	### I have no clue if this is a good way to do this or not.
 	eval "use $source_class;";
 	$self->{source} = $source_class->new( $params )
-    	|| croak "Couldn't initialize the $source_class module!";
+    	|| return; #croak "Couldn't initialize the $source_class module!";
 
 	
     # Set up a parser:
@@ -79,17 +79,41 @@ sub new {
 =head2 get_next
 
 Retrieves the next available message, regardless of it's type.
-If none are available, returns undef. 
+Will wait up to $timeout seconds for a message, defaulting to 
+whatever the source's current timeout is. If no messages become 
+available, returns undef. 
 
- my $msg = $tl1->get_next();
+ my $timeout = $tl1->source->timeout();
+ my $msg     = $tl1->get_next();  # waits $timeout seconds
+ 
+ my $msg     = $tl1->get_next(5);  # waits 5 seconds
  
 =cut
 
 sub get_next {
     my $self = shift;
-    my $msg;
-    $msg = shift( @{ $self->{response_queue} } );
-    $msg = $self->{parser}->parse_string( $self->{source}->_read_msg() ) unless $msg;
+    my $timeout = shift;
+
+    my $msg = shift( @{ $self->{response_queue} } );;
+
+    # If there was no message in the queue, 
+    # try to fetch one from the source.
+    if ( ! $msg )
+    {
+        # Set a new timeout value if necessary, and save the old one.
+        my $old_timeout;
+        if ( defined $timeout ) {
+            $old_timeout = $self->source->timeout();
+            $self->source->timeout($timeout)
+        }
+        
+        $msg = $self->{parser}->parse_string( $self->{source}->_read_msg() );
+        
+        # If necessary, put back the old timeout value.
+        if ( defined $timeout ) {
+             $self->source->timeout($old_timeout)  
+        }
+    } 
     return $msg;
 }
 

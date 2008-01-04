@@ -8,7 +8,7 @@ use warnings;
 use Carp;
 
 
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 
 sub new {
@@ -35,7 +35,7 @@ sub new {
 	eval "require $inst_class" || croak "Couldn't load $inst_class!";
 	
 	my $tl1_obj = $inst_class->new($params)
-		|| croak "Couldn't instantiate $inst_class!\n";
+		|| return; #croak "Couldn't instantiate $inst_class!\n";
 
     return $tl1_obj;
 }

@@ -17,9 +17,8 @@ should always check the isa() and/or the can() of $tll->source() before-hand.
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.07';
 
-#our @ISA = qw(TL1ng::Source);
 use base qw(TL1ng::Source);
 
 our $DEBUG = 0; # Debugging level... someday I'll figger out AOP with Perl...
@@ -73,9 +72,9 @@ sub new {
 
 	
     # Set up $self->{socket} with a Net::Telnet connection
-    # App will die if connection fails.
-    $self->connect() if $connect_now;
-
+    if ( $connect_now ) {
+        return unless $self->connect();
+    }
     return $self;
 }
 

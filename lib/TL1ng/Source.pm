@@ -3,7 +3,7 @@ package TL1ng::Source;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.07';
 
 1;
 
