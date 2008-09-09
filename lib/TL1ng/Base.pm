@@ -20,7 +20,7 @@ use warnings;
 
 use Carp;
 
-our $VERSION = '0.07';
+our $VERSION = '0.08';
 
 use TL1ng::Parser;
 
@@ -198,6 +198,7 @@ sub get_resp {
     # timeout is exceeded.
     my $start = time;
     while ( time < $start + $timeout ) {
+        last unless $self->source->connected();
         if ( my $msg = $self->{parser}->parse_string( $self->{source}->_read_msg() ) ) {
             return $msg if exists $msg->{CTAG} and $msg->{CTAG} eq "$CTAG" 
                        and exists $msg->{type} and $msg->{type} eq 'CMD';
